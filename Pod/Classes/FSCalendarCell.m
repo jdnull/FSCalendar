@@ -19,6 +19,7 @@
 @property (strong,   nonatomic) CAShapeLayer *eventLayer;
 @property (readonly, nonatomic) BOOL         today;
 @property (readonly, nonatomic) BOOL         weekend;
+@property (readonly, nonatomic) BOOL         dateBeforeToday; // JD: Judge if self's date is before today
 
 
 - (UIColor *)colorForCurrentStateInDictionary:(NSDictionary *)dictionary;
@@ -141,7 +142,7 @@
         _titleLabel.frame = CGRectMake(0, 0, self.fs_width, floor(self.contentView.fs_height*5.0/6.0));
         _subtitleLabel.hidden = YES;
     }
-    _backgroundLayer.hidden = !self.selected && !self.isToday;
+    _backgroundLayer.hidden = !self.selected;// && !self.isToday; // JD: selected logic change
     _backgroundLayer.path = _cellStyle == FSCalendarCellStyleCircle ?
     [UIBezierPath bezierPathWithOvalInRect:_backgroundLayer.bounds].CGPath :
     [UIBezierPath bezierPathWithRect:_backgroundLayer.bounds].CGPath;
@@ -164,8 +165,20 @@
     return self.date.fs_weekday == 1 || self.date.fs_weekday == 7;
 }
 
+// JD: judge if the date before today
+- (BOOL)isDateBeforeToday
+{
+    return [self.date fs_isBeforeToDate:[NSDate date]];
+}
+// end JD
+
 - (UIColor *)colorForCurrentStateInDictionary:(NSDictionary *)dictionary
 {
+    // JD: make the color of the date before today gray
+    if (self.grayDateBeforeToday && self.isDateBeforeToday) {
+        return dictionary[@(FSCalendarCellStatePlaceholder)];
+    }
+    // end JD
     if (self.isSelected) {
         return dictionary[@(FSCalendarCellStateSelected)];
     }

@@ -12,6 +12,8 @@
 
 @interface FSCalendarHeader : UIView
 
+@property (assign  , nonatomic) BOOL        canHeaderScrollLeft;
+
 @property (assign  , nonatomic) CGFloat     minDissolveAlpha;
 @property (assign  , nonatomic) CGFloat     scrollOffset;
 @property (copy    , nonatomic) NSString    *dateFormat;

@@ -28,6 +28,7 @@
 
 @property (assign, nonatomic) FSCalendarCellStyle cellStyle;
 @property (assign, nonatomic) BOOL                hasEvent;
+@property (assign, nonatomic) BOOL                grayDateBeforeToday;
 
 @property (readonly, getter = isPlaceholder)      BOOL placeholder;
 

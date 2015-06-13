@@ -21,10 +21,12 @@
 @interface FSCalendar (DataSourceAndDelegate)
 
 - (BOOL)hasEventForDate:(NSDate *)date;
+- (BOOL)isSelectedForDate:(NSDate *)date; // JD: set selected cell from dataSource
 - (NSString *)subtitleForDate:(NSDate *)date;
 
 - (BOOL)shouldSelectDate:(NSDate *)date;
 - (void)didSelectDate:(NSDate *)date;
+- (void)didDeselectDate:(NSDate *)date; // JD: deselect cell
 - (void)currentMonthDidChange;
 
 @end
@@ -128,6 +130,8 @@
     collectionView.showsVerticalScrollIndicator = NO;
     collectionView.delaysContentTouches = NO;
     collectionView.canCancelContentTouches = YES;
+    collectionView.allowsMultipleSelection = YES; // JD: allow multi select from delegate
+    
     [collectionView registerClass:[FSCalendarCell class] forCellWithReuseIdentifier:@"cell"];
     [self addSubview:collectionView];
     self.collectionView = collectionView;
@@ -140,14 +144,14 @@
     _backgroundColors[@(FSCalendarCellStateSelected)]    = kBlue;
     _backgroundColors[@(FSCalendarCellStateDisabled)]    = [UIColor clearColor];
     _backgroundColors[@(FSCalendarCellStatePlaceholder)] = [UIColor clearColor];
-    _backgroundColors[@(FSCalendarCellStateToday)]       = kPink;
+    _backgroundColors[@(FSCalendarCellStateToday)]       = [UIColor clearColor];//kPink; // JD: coloring for today
 
     _titleColors = [NSMutableDictionary dictionaryWithCapacity:4];
     _titleColors[@(FSCalendarCellStateNormal)]      = [UIColor darkTextColor];
     _titleColors[@(FSCalendarCellStateSelected)]    = [UIColor whiteColor];
     _titleColors[@(FSCalendarCellStateDisabled)]    = [UIColor grayColor];
     _titleColors[@(FSCalendarCellStatePlaceholder)] = [UIColor lightGrayColor];
-    _titleColors[@(FSCalendarCellStateToday)]       = [UIColor whiteColor];
+    _titleColors[@(FSCalendarCellStateToday)]       = [UIColor redColor]; // JD: coloring for today
     
     _subtitleColors = [NSMutableDictionary dictionaryWithCapacity:4];
     _subtitleColors[@(FSCalendarCellStateNormal)]      = [UIColor darkGrayColor];
@@ -201,6 +205,13 @@
         [NSException raise:@"maximumDate must be later than minimumDate" format:nil];
     }
     if (_header) {
+        _header.canHeaderScrollLeft = true; // JD: default: header can scroll left
+        // JD: judge if header can scroll left
+        if (_delegate && [_delegate respondsToSelector:@selector(shouldStartFromCurrentMonth)]) {
+            _header.canHeaderScrollLeft = ![_delegate shouldStartFromCurrentMonth];
+        }
+        // end JD
+        
         [_header setValue:minimumDate forKey:@"minimumDate"];
         [_header setValue:maximumDate forKey:@"maximumDate"];
     }
@@ -243,7 +254,28 @@
     cell.subtitleLabel.font = _subtitleFont;
     cell.date               = [self dateForIndexPath:indexPath];
     cell.subtitle           = [self subtitleForDate:cell.date];
-    cell.hasEvent           = [self hasEventForDate:cell.date];
+    cell.hasEvent           = false; // JD: default not to display event dot
+    // JD: decide if displaying event dot for the date from delegate
+    if (_delegate && [_delegate respondsToSelector:@selector(shouldDisplayEventDot)]) {
+        cell.hasEvent = [_delegate shouldDisplayEventDot];
+        if (cell.hasEvent) {
+            cell.hasEvent = [self hasEventForDate:cell.date];
+        }
+    }
+    // end JD
+    cell.grayDateBeforeToday= false; // JD: default not to gray the date before today
+    // JD: set if gray the date before today from delegate
+    if (_delegate && [_delegate respondsToSelector:@selector(shouldGrayDateBeforeToday)]) {
+        cell.grayDateBeforeToday = [_delegate shouldGrayDateBeforeToday];
+    }
+    // end JD
+    cell.selected           = [self isSelectedForDate:cell.date]; // JD: set selected cell from dataSource
+    // JD: fix bug that can't be touched if cell initialized with selected = YES
+    if ([self isSelectedForDate:cell.date]) {
+        [_collectionView selectItemAtIndexPath:indexPath animated:NO scrollPosition:UICollectionViewScrollPositionNone];
+    }
+    // end JD
+    
     [cell configureCell];
     return cell;
 }
@@ -263,12 +295,15 @@
 - (BOOL)collectionView:(UICollectionView *)collectionView shouldSelectItemAtIndexPath:(NSIndexPath *)indexPath
 {
     FSCalendarCell *cell = (FSCalendarCell *)[collectionView cellForItemAtIndexPath:indexPath];
-    return [self shouldSelectDate:cell.date] && ![[collectionView indexPathsForSelectedItems] containsObject:indexPath];
+    return !cell.isPlaceholder // JD: forbid to touch placeholder
+            && [self shouldSelectDate:cell.date]
+            && ![[collectionView indexPathsForSelectedItems] containsObject:indexPath];
 }
 
 - (void)collectionView:(UICollectionView *)collectionView didDeselectItemAtIndexPath:(NSIndexPath *)indexPath
 {
     FSCalendarCell *cell = (FSCalendarCell *)[collectionView cellForItemAtIndexPath:indexPath];
+    [self didDeselectDate:cell.date]; // JD: call delegate's didDeselectDate
     [cell hideAnimation];
 }
 
@@ -284,6 +319,7 @@
     }
     CGFloat scrollOffset = MAX(scrollView.contentOffset.x/scrollView.fs_width,
                                scrollView.contentOffset.y/scrollView.fs_height);
+    
     NSDate *currentMonth = [_minimumDate fs_dateByAddingMonths:round(scrollOffset)];
     if (![_currentMonth fs_isEqualToDateForMonth:currentMonth]) {
         _currentMonth = [currentMonth copy];
@@ -798,6 +834,15 @@
     }
 }
 
+// JD: deselect cell
+- (void)didDeselectDate:(NSDate *)date
+{
+    if (_delegate && [_delegate respondsToSelector:@selector(calendar:didDeselectDate:)]) {
+        [_delegate calendar:self didDeselectDate:date];
+    }
+}
+// end JD
+
 - (void)currentMonthDidChange
 {
     if (_delegate && [_delegate respondsToSelector:@selector(calendarCurrentMonthDidChange:)]) {
@@ -822,6 +867,16 @@
     }
     return NO;
 }
+
+// JD: check and call dataSource's method
+- (BOOL)isSelectedForDate:(NSDate *)date
+{
+    if (_delegate && [_delegate respondsToSelector:@selector(calendar:isSelectedForDate:)]) {
+        return [_delegate calendar:self isSelectedForDate:date];
+    }
+    return NO;
+}
+// end JD
 
 - (NSDate *)minimumDate
 {

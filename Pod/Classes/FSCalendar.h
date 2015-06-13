@@ -37,8 +37,14 @@ typedef NS_OPTIONS(NSInteger, FSCalendarCellState) {
 @protocol FSCalendarDelegate <NSObject>
 
 @optional
+
+- (BOOL)shouldDisplayEventDot; // JD: decide if displaying the event dot for the date
+- (BOOL)shouldStartFromCurrentMonth; // JD: decide if the calendar start from current
+- (BOOL)shouldGrayDateBeforeToday; // JD: decide if making the color of the date before today gray
 - (BOOL)calendar:(FSCalendar *)calendar shouldSelectDate:(NSDate *)date;
 - (void)calendar:(FSCalendar *)calendar didSelectDate:(NSDate *)date;
+- (void)calendar:(FSCalendar *)calendar didDeselectDate:(NSDate *)date; // JD: declare delegate's deselect cell
+- (BOOL)calendar:(FSCalendar *)calendar isSelectedForDate:(NSDate *)date; // JD: set selected cell delegate
 - (void)calendarCurrentMonthDidChange:(FSCalendar *)calendar;
 
 @end
@@ -49,6 +55,7 @@ typedef NS_OPTIONS(NSInteger, FSCalendarCellState) {
 
 - (NSString *)calendar:(FSCalendar *)calendar subtitleForDate:(NSDate *)date;
 - (BOOL)calendar:(FSCalendar *)calendar hasEventForDate:(NSDate *)date;
+
 - (NSDate *)minimumDateForCalendar:(FSCalendar *)calendar;
 - (NSDate *)maximumDateForCalendar:(FSCalendar *)calendar;
 

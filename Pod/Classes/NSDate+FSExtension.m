@@ -198,6 +198,23 @@
     return self.fs_year == date.fs_year && self.fs_month == date.fs_month && self.fs_day == date.fs_day;
 }
 
+// JD: extension: is earlier than the date
+- (BOOL)fs_isBeforeToDate:(NSDate *)date
+{
+    if (self.fs_year < date.fs_year) {
+        return true;
+    }
+    if (self.fs_year == date.fs_year && self.fs_month < date.fs_month) {
+        return true;
+    }
+    if (self.fs_year == date.fs_year && self.fs_month == date.fs_month && self.fs_day < date.fs_day) {
+        return true;
+    }
+    
+    return false;
+}
+// end JD
+
 + (instancetype)fs_dateFromString:(NSString *)string format:(NSString *)format
 {
     NSDateFormatter *formatter = [[NSDateFormatter alloc] init];

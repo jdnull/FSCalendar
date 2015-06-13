@@ -84,7 +84,15 @@
     _collectionViewFlowLayout.itemSize = CGSizeMake(self.fs_width * 0.5,
                                                     self.fs_height);
     CGFloat scrollOffset = self.scrollOffset;
-    _scrollOffset = 0;
+    
+    // JD: can header scroll left
+    if (_canHeaderScrollLeft) {
+        _scrollOffset = 0;
+    } else {
+        _scrollOffset = self.fs_width * 0.5; 
+    }
+    // JD end
+    
     self.scrollOffset = scrollOffset;
 }
 

@@ -19,6 +19,7 @@
 
 @property (strong, nonatomic) NSCalendar *currentCalendar;
 @property (strong, nonatomic) SSLunarDate *lunarDate;
+@property (strong, nonatomic) NSMutableArray *selectedDates; // JD: store selected dates
 
 @end
 
@@ -32,13 +33,30 @@
     _currentCalendar = [NSCalendar currentCalendar];
     _flow = _calendar.flow;
     _firstWeekday = _calendar.firstWeekday;
+//    [self setTheme:2];
 //    _calendar.firstWeekday = 2;
 //    _calendar.flow = FSCalendarFlowVertical;
 //    _calendar.currentMonth = [NSDate fs_dateWithYear:2015 month:2 day:1];
     
+    _selectedDates = [NSMutableArray array];
+    
+    // JD: test code
+    NSDate *date = [NSDate fs_dateFromString:@"2015-06-07" format:@"yyyy-MM-dd"];
+    [_selectedDates addObject:[date fs_dateByAddingDays:0]];
+    [_selectedDates addObject:[date fs_dateByAddingDays:1]];
+    [_selectedDates addObject:[date fs_dateByAddingDays:2]];
+    // end JD
 }
 
 #pragma mark - FSCalendarDataSource
+
+// JD: implement delegate method: set minimum date for calendar
+- (NSDate *)minimumDateForCalendar:(FSCalendar *)calendar
+{
+    NSDate *today = [NSDate date];
+    return [NSDate fs_dateWithYear:today.fs_year month:today.fs_month day:today.fs_day];
+}
+// end JD
 
 - (NSString *)calendar:(FSCalendar *)calendarView subtitleForDate:(NSDate *)date
 {
@@ -54,11 +72,6 @@
     return date.fs_day == 3;
 }
 
-//- (NSDate *)minimumDateForCalendar:(FSCalendar *)calendar
-//{
-//    return [NSDate fs_dateWithYear:2015 month:3 day:1];
-//}
-//
 //- (NSDate *)maximumDateForCalendar:(FSCalendar *)calendar
 //{
 //    return [NSDate fs_dateWithYear:2015 month:7 day:30];
@@ -66,28 +79,70 @@
 
 #pragma mark - FSCalendarDelegate
 
-- (BOOL)calendar:(FSCalendar *)calendar shouldSelectDate:(NSDate *)date
+// JD: set if calendar's header can scroll left
+- (BOOL)shouldStartFromCurrentMonth
 {
-    BOOL shouldSelect = date.fs_day != 7;
-    if (!shouldSelect) {
-        [[[UIAlertView alloc] initWithTitle:@"FSCalendar"
-                                    message:[NSString stringWithFormat:@"FSCalendar delegate forbid %@  to be selected",[date fs_stringWithFormat:@"yyyy/MM/dd"]]
-                                   delegate:nil
-                          cancelButtonTitle:@"OK"
-                          otherButtonTitles:nil, nil] show];
-    }
-    return shouldSelect;
+    return true; // you should set dataSource's minimumDateForCalendar from this month if you want to return true
 }
+// end JD
+
+// JD: set if gray the color of the date before today
+- (BOOL)shouldGrayDateBeforeToday
+{
+    return false;
+}
+// end JD
+
+// JD: set if gray the color of the date before today
+- (BOOL)shouldDisplayEventDot
+{
+    return false;
+}
+// end JD
+
+//- (BOOL)calendar:(FSCalendar *)calendar shouldSelectDate:(NSDate *)date
+//{
+//    BOOL shouldSelect = date.fs_day != 8;
+//    if (!shouldSelect) {
+//        [[[UIAlertView alloc] initWithTitle:@"FSCalendar"
+//                                    message:[NSString stringWithFormat:@"FSCalendar delegate forbid %@  to be selected",[date fs_stringWithFormat:@"yyyy/MM/dd"]]
+//                                   delegate:nil
+//                          cancelButtonTitle:@"OK"
+//                          otherButtonTitles:nil, nil] show];
+//    }
+//    return YES;
+//}
 
 - (void)calendar:(FSCalendar *)calendar didSelectDate:(NSDate *)date
 {
+    [_selectedDates addObject:date];
     NSLog(@"did select date %@",[date fs_stringWithFormat:@"yyyy/MM/dd"]);
 }
+
+// JD: implement delegate method
+- (void)calendar:(FSCalendar *)calendar didDeselectDate:(NSDate *)date
+{
+    [_selectedDates removeObject:date];
+    NSLog(@"did deselect date %@",[date fs_stringWithFormat:@"yyyy/MM/dd"]);
+}
+// end JD
 
 - (void)calendarCurrentMonthDidChange:(FSCalendar *)calendar
 {
     NSLog(@"did change to month %@",[calendar.currentMonth fs_stringWithFormat:@"MMMM yyyy"]);
 }
+
+// JD: implement delegate method
+-(BOOL)calendar:(FSCalendar *)calendar isSelectedForDate:(NSDate *)date
+{
+    for (NSDate *d in _selectedDates) {
+        if ([date fs_isEqualToDateForDay:d]) {
+            return YES;
+        }
+    }
+    return NO;
+}
+// end JD
 
 #pragma mark - Navigation
 
